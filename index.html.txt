@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>1RM Calculator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #0d1117;
+      --surface:     #161b22;
+      --border:      #2a2f3a;
+      --accent:      #3fb950;
+      --accent-dim:  #0f3a1a;
+      --accent-text: #0d1117;
+      --text:        #e6edf3;
+      --muted:       #7d8590;
+      --radius:      10px;
+      --font-sans:   'Space Grotesk', sans-serif;
+      --font-mono:   'Space Mono', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem 3rem;
+    }
+
+    /* ── Header ── */
+    header { text-align: center; margin-bottom: 2.2rem; }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.55rem;
+    }
+    h1 {
+      font-size: clamp(1.6rem, 5vw, 2.4rem);
+      font-weight: 700;
+      line-height: 1.15;
+      color: var(--text);
+    }
+    h1 span { color: var(--accent); }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    /* ── Section label ── */
+    .label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.6rem;
+      display: block;
+    }
+
+    /* ── Unit toggle (same pattern as fuel-grid) ── */
+    .unit-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.6rem;
+      margin-bottom: 1.6rem;
+    }
+    .unit-btn {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--muted);
+      cursor: pointer;
+      padding: 0.7rem 0.4rem;
+      text-align: center;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+      font-family: var(--font-sans);
+    }
+    .unit-btn .uname {
+      display: block;
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+    .unit-btn .udesc {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      margin-top: 0.2rem;
+      color: var(--muted);
+    }
+    .unit-btn.active {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+    }
+    .unit-btn.active .udesc { color: var(--accent); }
+    .unit-btn:hover:not(.active) { border-color: #444; }
+
+    /* ── Inputs ── */
+    .field { margin-bottom: 1.4rem; }
+    .input-wrap { position: relative; }
+    input[type="number"] {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 1.05rem;
+      padding: 0.75rem 4rem 0.75rem 1rem;
+      outline: none;
+      transition: border-color 0.15s;
+      -moz-appearance: textfield;
+    }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+    input[type="number"]:focus { border-color: var(--accent); }
+    .unit-tag {
+      position: absolute;
+      right: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--muted);
+      pointer-events: none;
+    }
+
+    /* ── Calculate button ── */
+    .calc-btn {
+      width: 100%;
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius);
+      color: var(--accent-text);
+      cursor: pointer;
+      font-family: var(--font-sans);
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 0.9rem;
+      margin-top: 0.4rem;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .calc-btn:hover { opacity: 0.88; }
+    .calc-btn:active { transform: scale(0.98); }
+
+    /* ── Results ── */
+    .results {
+      margin-top: 1.6rem;
+      border-top: 1px solid var(--border);
+      padding-top: 1.4rem;
+      display: none;
+    }
+    .results.visible { display: block; }
+    .results-title {
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 0.55rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.92rem;
+    }
+    .result-row:last-of-type { border-bottom: none; }
+    .result-key { color: var(--muted); }
+    .result-val {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    /* ── 1RM total box (green accent) ── */
+    .total-row {
+      background: var(--accent-dim);
+      border: 1px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 0.9rem 1rem;
+      margin-top: 0.9rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .total-label { font-size: 0.85rem; font-weight: 600; color: var(--text); }
+    .total-amount {
+      font-family: var(--font-mono);
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+
+
+    /* ── Error ── */
+    .error-msg {
+      color: #f85149;
+      font-size: 0.82rem;
+      margin-top: 0.5rem;
+      display: none;
+    }
+    .error-msg.visible { display: block; }
+
+    /* ── Reset / Copy row ── */
+    .btn-row {
+      display: flex;
+      gap: 0.6rem;
+      margin-top: 1rem;
+    }
+    .sec-btn {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--muted);
+      cursor: pointer;
+      font-family: var(--font-sans);
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 0.65rem;
+      transition: border-color 0.15s, color 0.15s, transform 0.1s;
+    }
+    .sec-btn:hover { border-color: #444; color: var(--text); }
+    .sec-btn:active { transform: scale(0.98); }
+
+    /* ── Footer ── */
+    footer {
+      margin-top: 1.8rem;
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <p class="eyebrow">Epley Formula</p>
+    <h1>One-Rep Max<br><span>Calculator</span></h1>
+  </header>
+
+  <div class="card">
+
+    <!-- Unit selector -->
+    <span class="label">Weight unit</span>
+    <div class="unit-grid">
+      <button class="unit-btn active" id="btn-kg" onclick="setUnit('kg')">
+        <span class="uname">Kilograms</span>
+        <span class="udesc">kg</span>
+      </button>
+      <button class="unit-btn" id="btn-lbs" onclick="setUnit('lbs')">
+        <span class="uname">Pounds</span>
+        <span class="udesc">lbs</span>
+      </button>
+    </div>
+
+    <!-- Weight lifted -->
+    <div class="field">
+      <label class="label" for="weight">Weight lifted</label>
+      <div class="input-wrap">
+        <input type="number" id="weight" placeholder="e.g. 100" min="0" step="any" inputmode="decimal" />
+        <span class="unit-tag" id="weight-unit-tag">kg</span>
+      </div>
+    </div>
+
+    <!-- Reps -->
+    <div class="field">
+      <label class="label" for="reps">Reps performed</label>
+      <div class="input-wrap">
+        <input type="number" id="reps" placeholder="e.g. 5" min="1" max="30" step="1" inputmode="numeric" />
+        <span class="unit-tag">reps</span>
+      </div>
+    </div>
+
+    <p class="error-msg" id="error">Enter valid weight and rep values to calculate.</p>
+
+    <button class="calc-btn" onclick="calculate()">Calculate 1RM →</button>
+
+    <!-- Results -->
+    <div class="results" id="results">
+      <p class="results-title">Breakdown</p>
+      <div class="result-row">
+        <span class="result-key">Weight lifted</span>
+        <span class="result-val" id="out-weight">—</span>
+      </div>
+      <div class="result-row">
+        <span class="result-key">Reps performed</span>
+        <span class="result-val" id="out-reps">—</span>
+      </div>
+      <div class="result-row">
+        <span class="result-key">Formula</span>
+        <span class="result-val" id="out-formula">—</span>
+      </div>
+      <div class="total-row">
+        <span class="total-label">Estimated 1RM</span>
+        <span class="total-amount" id="out-total">—</span>
+      </div>
+
+
+    </div>
+
+    <div class="btn-row">
+      <button class="sec-btn" onclick="reset()">↺ Reset</button>
+      <button class="sec-btn" id="copy-btn" onclick="copyResult()">⎘ Copy result</button>
+    </div>
+
+  </div>
+
+  <footer>
+    Uses the Epley formula: 1RM = weight × (1 + reps ÷ 30)<br>
+    Actual performance may vary. Always train with a spotter.
+  </footer>
+
+  <script>
+    let unit = 'kg';
+
+    function setUnit(newUnit) {
+      const weightInput = document.getElementById('weight');
+      const currentVal  = parseFloat(weightInput.value);
+
+      // Convert the displayed value before switching
+      if (!isNaN(currentVal) && currentVal > 0) {
+        if (newUnit === 'lbs' && unit === 'kg') {
+          weightInput.value = (currentVal * 2.20462).toFixed(1);
+        } else if (newUnit === 'kg' && unit === 'lbs') {
+          weightInput.value = (currentVal / 2.20462).toFixed(1);
+        }
+      }
+
+      unit = newUnit;
+      document.getElementById('weight-unit-tag').textContent = newUnit;
+      document.getElementById('btn-kg').classList.toggle('active',  newUnit === 'kg');
+      document.getElementById('btn-lbs').classList.toggle('active', newUnit === 'lbs');
+
+      // Recalculate with new unit if results are already showing
+      if (document.getElementById('results').classList.contains('visible')) {
+        calculate();
+      }
+    }
+
+    function calculate() {
+      const w   = parseFloat(document.getElementById('weight').value);
+      const r   = parseInt(document.getElementById('reps').value);
+      const err = document.getElementById('error');
+      const res = document.getElementById('results');
+
+      if (!w || !r || w <= 0 || r < 1 || isNaN(w) || isNaN(r)) {
+        err.classList.add('visible');
+        res.classList.remove('visible');
+        return;
+      }
+      err.classList.remove('visible');
+
+      const orm = w * (1 + r / 30);
+
+      document.getElementById('out-weight').textContent  = w.toFixed(1) + ' ' + unit;
+      document.getElementById('out-reps').textContent    = r + ' reps';
+      document.getElementById('out-formula').textContent = w.toFixed(1) + ' × (1 + ' + r + '/30)';
+      document.getElementById('out-total').textContent   = orm.toFixed(1) + ' ' + unit;
+
+res.classList.add('visible');
+    }
+
+    function reset() {
+      document.getElementById('weight').value = '';
+      document.getElementById('reps').value   = '';
+      document.getElementById('error').classList.remove('visible');
+      document.getElementById('results').classList.remove('visible');
+      document.getElementById('weight').focus();
+    }
+
+    function copyResult() {
+      const total = document.getElementById('out-total').textContent;
+      if (total === '—') return;
+      const w = document.getElementById('weight').value;
+      const r = document.getElementById('reps').value;
+      const text = `1RM estimate: ${total} — based on ${w} ${unit} × ${r} reps (Epley formula)`;
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('copy-btn');
+        btn.textContent = '✓ Copied!';
+        setTimeout(() => { btn.textContent = '⎘ Copy result'; }, 2000);
+      });
+    }
+
+    document.addEventListener('keydown', e => { if (e.key === 'Enter') calculate(); });
+  </script>
+
+</body>
+</html>
